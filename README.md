@@ -845,6 +845,15 @@ For detailed experimental results and theoretical foundations, see:
 - [Research Documentation](research_documentation.md)
 - [Prompt Templates](prompt-templates/)
 
+### Benchmarking
+
+```bash
+export BASE_MODEL=your-base-model
+export SHIFT_MODEL=pse-tuned-model
+python pse_bench.py --max_tokens 100 --temp 0.7 --out pse_results.csv
+```
+
+
 ## Citation
 
 If you use this technique in your work or research, please cite:
