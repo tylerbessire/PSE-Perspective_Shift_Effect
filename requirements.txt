@@ -1,0 +1,6 @@
+openai
+pyyaml
+pandas
+nltk
+rouge-score
+rich
