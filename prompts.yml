@@ -1,4 +1,1044 @@
-- prompt: "Explain the process of photosynthesis."
-  reference: "Photosynthesis converts light energy into chemical energy in plants."
-- prompt: "Summarize the plot of Romeo and Juliet."
-  reference: "Romeo and Juliet is a tragedy by Shakespeare about two star-crossed lovers."
+# Comprehensive PSE Benchmark Prompts
+# This suite demonstrates top-tier prompt engineering practices across multiple domains
+# Each prompt is designed to evaluate the Perspective Shift Effect with high-quality references
+
+# ============================================================================
+# CATEGORY: Code Generation & Optimization
+# ============================================================================
+
+- prompt: |
+    Write a Python function that implements binary search on a sorted array.
+    Requirements:
+    - Handle edge cases (empty array, single element, target not found)
+    - Include comprehensive docstring with complexity analysis
+    - Use type hints for all parameters and return values
+    - Implement iterative approach for O(1) space complexity
+    - Return the index of the target element, or -1 if not found
+  reference: |
+    def binary_search(arr: list[int], target: int) -> int:
+        """
+        Perform binary search on a sorted array.
+
+        Time Complexity: O(log n)
+        Space Complexity: O(1)
+
+        Args:
+            arr: Sorted list of integers
+            target: Integer to search for
+
+        Returns:
+            Index of target if found, -1 otherwise
+        """
+        left, right = 0, len(arr) - 1
+
+        while left <= right:
+            mid = (left + right) // 2
+
+            if arr[mid] == target:
+                return mid
+            elif arr[mid] < target:
+                left = mid + 1
+            else:
+                right = mid - 1
+
+        return -1
+
+- prompt: |
+    Design a RESTful API endpoint for a user management system. Provide:
+    1. HTTP method and URL path structure
+    2. Request body schema (JSON)
+    3. Response format with status codes
+    4. Error handling approach
+    5. Authentication/authorization strategy
+
+    Scenario: Creating a new user account with email verification
+  reference: |
+    POST /api/v1/users/register
+
+    Request Body:
+    {
+      "email": "user@example.com",
+      "password": "SecurePass123!",
+      "firstName": "John",
+      "lastName": "Doe"
+    }
+
+    Success Response (201 Created):
+    {
+      "userId": "uuid-string",
+      "email": "user@example.com",
+      "firstName": "John",
+      "lastName": "Doe",
+      "verificationSent": true,
+      "message": "Account created. Please verify your email."
+    }
+
+    Error Responses:
+    - 400 Bad Request: Invalid email format or weak password
+    - 409 Conflict: Email already registered
+    - 429 Too Many Requests: Rate limit exceeded
+
+    Authentication: Public endpoint (no auth required for registration)
+    Security: Rate limiting, password hashing (bcrypt), email verification token
+
+# ============================================================================
+# CATEGORY: Technical Analysis & Debugging
+# ============================================================================
+
+- prompt: |
+    Analyze the following code snippet and identify all potential bugs, security vulnerabilities, and performance issues:
+
+    ```python
+    def process_user_data(user_input):
+        data = eval(user_input)
+        results = []
+        for i in range(len(data)):
+            if data[i] != None:
+                results.append(data[i] * 2)
+        return results
+    ```
+
+    Provide: (1) Issue identification, (2) Security risk assessment, (3) Corrected implementation
+  reference: |
+    Issues Identified:
+
+    1. CRITICAL SECURITY VULNERABILITY: eval() usage
+       - Risk: Arbitrary code execution (RCE)
+       - Severity: 10/10
+       - Allows attacker to execute any Python code
+
+    2. STYLE: Using 'is not' instead of '!=' for None comparison
+       - Should use: if data[i] is not None
+
+    3. PERFORMANCE: Inefficient iteration using range(len())
+       - Better: Direct iteration over elements
+
+    Corrected Implementation:
+    ```python
+    import json
+    from typing import List, Union
+
+    def process_user_data(user_input: str) -> List[Union[int, float]]:
+        try:
+            data = json.loads(user_input)
+            if not isinstance(data, list):
+                raise ValueError("Input must be a JSON array")
+
+            return [item * 2 for item in data if item is not None]
+        except json.JSONDecodeError:
+            raise ValueError("Invalid JSON format")
+    ```
+
+- prompt: |
+    You are debugging a microservices application. Users report intermittent 500 errors occurring roughly 2% of the time.
+    Given these observations:
+    - Errors happen across different endpoints
+    - More frequent during peak hours (10am-2pm)
+    - Database query times are normal
+    - No errors in application logs, only in API gateway logs
+
+    Use systematic debugging methodology to:
+    1. Form hypotheses (ranked by likelihood)
+    2. Suggest diagnostic tests for each hypothesis
+    3. Recommend monitoring improvements
+  reference: |
+    Systematic Analysis:
+
+    HYPOTHESES (Ranked by Likelihood):
+
+    1. CONNECTION POOL EXHAUSTION (High likelihood)
+       - Evidence: Intermittent, peak hours, 2% failure rate
+       - Test: Monitor active/idle connections, pool utilization metrics
+       - Action: Check connection pool size vs. concurrent requests
+
+    2. TIMEOUT ISSUES (Medium-High likelihood)
+       - Evidence: API gateway logs only, no app logs = timeout before response
+       - Test: Analyze P95/P99 latencies, timeout configurations
+       - Action: Review gateway timeout settings vs. service response times
+
+    3. RACE CONDITION (Medium likelihood)
+       - Evidence: Intermittent, affects multiple endpoints
+       - Test: Load testing with concurrent requests, thread-safety audit
+       - Action: Review shared state, caching mechanisms
+
+    DIAGNOSTIC TESTS:
+    1. Enable distributed tracing (Jaeger/Zipkin)
+    2. Implement connection pool metrics
+    3. Add request/response timing at each service boundary
+    4. Capture full error context in gateway
+
+    MONITORING IMPROVEMENTS:
+    - Connection pool utilization alerts
+    - P99 latency tracking per endpoint
+    - Correlation IDs across all services
+    - Resource utilization (CPU, memory, network) during peak hours
+
+# ============================================================================
+# CATEGORY: System Design & Architecture
+# ============================================================================
+
+- prompt: |
+    Design a scalable rate-limiting system for a public API serving 10,000 requests per second.
+    Requirements:
+    - Support multiple rate limit tiers (free: 100/hour, pro: 1000/hour, enterprise: custom)
+    - Distribute across multiple server instances
+    - Minimal latency overhead (<5ms)
+    - Handle burst traffic gracefully
+
+    Provide: Architecture diagram description, technology choices, and algorithm selection with trade-offs
+  reference: |
+    ARCHITECTURE:
+
+    Layer 1: API Gateway (NGINX/Kong)
+    - First-pass rate limiting using sliding window
+    - Route to appropriate backend based on API key
+
+    Layer 2: Distributed Rate Limiter (Redis)
+    - Centralized state for accurate limits across instances
+    - Token bucket algorithm for burst handling
+
+    Layer 3: Application Servers
+    - Local cache for rate limit status (reduce Redis calls)
+    - Async updates to Redis
+
+    TECHNOLOGY STACK:
+    - Redis: <1ms lookups, atomic INCR operations, TTL support
+    - Sliding Window Counter: Balance accuracy vs. performance
+    - Token Bucket Algorithm: Allows bursts while maintaining average rate
+
+    IMPLEMENTATION:
+    1. Store: Redis Sorted Sets or Hash with TTL
+       Key: `ratelimit:{api_key}:{window}`
+       Value: Request count or tokens
+
+    2. Algorithm: Sliding Window Log
+       - Store timestamps in sorted set
+       - Remove expired entries
+       - Count remaining entries
+       - Decision: O(log N) complexity
+
+    3. Optimization:
+       - Local cache (5-second TTL) for 80% of checks
+       - Batch Redis updates
+       - Pre-calculate limits at authentication time
+
+    TRADE-OFFS:
+    - Fixed Window: Fast but can allow 2x burst at boundaries
+    - Sliding Window Log: Accurate but memory-intensive
+    - Token Bucket: Good for bursts, chosen for this use case
+
+    LATENCY BUDGET:
+    - Local cache hit: <0.1ms (80% of requests)
+    - Redis check: 1-2ms (20% of requests)
+    - Total average: <0.5ms ✓
+
+# ============================================================================
+# CATEGORY: Algorithm & Data Structure Design
+# ============================================================================
+
+- prompt: |
+    Design a data structure that supports the following operations efficiently:
+    1. insert(value): Add a value to the collection
+    2. remove(value): Remove a value from the collection
+    3. getRandom(): Return a random element with uniform probability
+
+    All operations must be O(1) average time complexity. Explain your approach, implementation details, and time/space complexity analysis.
+  reference: |
+    SOLUTION: HashMap + Dynamic Array Combination
+
+    DATA STRUCTURE:
+    ```python
+    class RandomizedSet:
+        def __init__(self):
+            self.values = []  # Dynamic array for O(1) random access
+            self.indices = {}  # HashMap: value -> index in array
+    ```
+
+    OPERATIONS:
+
+    1. insert(value) - O(1) average:
+       - Check if value exists in HashMap
+       - If not: append to array, store index in HashMap
+       - Return success/failure
+
+    2. remove(value) - O(1) average:
+       - Get index from HashMap
+       - Swap element with last element in array
+       - Update HashMap for swapped element
+       - Pop last element from array
+       - Remove from HashMap
+
+    3. getRandom() - O(1):
+       - Generate random index: random.randint(0, len(values)-1)
+       - Return values[index]
+
+    KEY INSIGHT:
+    The trick for O(1) removal is swapping with the last element, allowing
+    us to delete from the end of the array (O(1)) instead of middle (O(n)).
+
+    COMPLEXITY ANALYSIS:
+    - Time: O(1) average for all operations
+    - Space: O(n) where n is number of elements
+    - HashMap collisions might cause O(n) worst case, but average is O(1)
+
+    TRADE-OFFS:
+    - Pros: All operations O(1), simple implementation
+    - Cons: Order not preserved, uses extra space for HashMap
+
+- prompt: |
+    Implement a least-recently-used (LRU) cache with O(1) get and put operations.
+    Requirements:
+    - Constructor takes capacity parameter
+    - get(key): Return value if key exists, -1 otherwise. Mark as recently used.
+    - put(key, value): Insert or update value. If at capacity, evict LRU item.
+
+    Explain data structure choice and provide implementation in Python with type hints.
+  reference: |
+    SOLUTION: Doubly Linked List + HashMap
+
+    WHY THIS COMBINATION:
+    - HashMap: O(1) key lookup
+    - Doubly Linked List: O(1) removal and insertion at both ends
+    - Together: O(1) for all operations
+
+    STRUCTURE:
+    - HashMap: key -> LinkedListNode
+    - LinkedList: Most recent (head) to Least recent (tail)
+
+    ```python
+    from typing import Optional
+
+    class Node:
+        def __init__(self, key: int, value: int):
+            self.key = key
+            self.value = value
+            self.prev: Optional[Node] = None
+            self.next: Optional[Node] = None
+
+    class LRUCache:
+        def __init__(self, capacity: int):
+            self.capacity = capacity
+            self.cache: dict[int, Node] = {}
+            # Dummy head and tail for easier operations
+            self.head = Node(0, 0)
+            self.tail = Node(0, 0)
+            self.head.next = self.tail
+            self.tail.prev = self.head
+
+        def _remove(self, node: Node) -> None:
+            """Remove node from linked list."""
+            node.prev.next = node.next
+            node.next.prev = node.prev
+
+        def _add_to_head(self, node: Node) -> None:
+            """Add node right after head (most recent position)."""
+            node.next = self.head.next
+            node.prev = self.head
+            self.head.next.prev = node
+            self.head.next = node
+
+        def get(self, key: int) -> int:
+            if key not in self.cache:
+                return -1
+
+            node = self.cache[key]
+            # Move to head (mark as recently used)
+            self._remove(node)
+            self._add_to_head(node)
+            return node.value
+
+        def put(self, key: int, value: int) -> None:
+            if key in self.cache:
+                # Update existing
+                node = self.cache[key]
+                node.value = value
+                self._remove(node)
+                self._add_to_head(node)
+            else:
+                # Add new
+                if len(self.cache) >= self.capacity:
+                    # Evict LRU (tail.prev)
+                    lru = self.tail.prev
+                    self._remove(lru)
+                    del self.cache[lru.key]
+
+                new_node = Node(key, value)
+                self.cache[key] = new_node
+                self._add_to_head(new_node)
+    ```
+
+    COMPLEXITY:
+    - Time: O(1) for both get and put
+    - Space: O(capacity)
+
+# ============================================================================
+# CATEGORY: Critical Reasoning & Problem Solving
+# ============================================================================
+
+- prompt: |
+    A company's customer churn rate increased from 5% to 12% over three months. Available data shows:
+    - New pricing introduced 4 months ago (15% increase)
+    - Competitor launched similar product 3 months ago at lower price
+    - Customer support response time increased from 2 hours to 8 hours
+    - Two negative reviews went viral on social media
+    - Product feature X (used by 40% of customers) was deprecated
+
+    Use structured analysis to:
+    1. Identify likely root causes (with confidence levels)
+    2. Distinguish correlation from causation
+    3. Propose data-driven validation methods
+    4. Recommend prioritized action items
+  reference: |
+    STRUCTURED ROOT CAUSE ANALYSIS:
+
+    PRIMARY CAUSES (High Confidence - 80-90%):
+
+    1. Feature Deprecation (90% confidence)
+       - Evidence: Direct impact on 40% user base
+       - Timeline: Aligns with churn increase
+       - Validation: Segment churn by feature usage - expect 3x higher churn among Feature X users
+       - Mechanism: Clear causation - removed value proposition
+
+    2. Customer Support Degradation (85% confidence)
+       - Evidence: 4x increase in response time
+       - Impact: Frustration compounds other issues
+       - Validation: Correlate support ticket volume with churn timing
+       - Mechanism: Poor support prevents issue resolution, accelerates churn
+
+    SECONDARY CAUSES (Medium Confidence - 50-70%):
+
+    3. Competitive Pressure (70% confidence)
+       - Evidence: Timing aligns, lower competitor price
+       - Validation: Survey churned customers about alternatives; track competitor mentions
+       - Note: Likely amplifies other issues rather than sole cause
+
+    4. Viral Negative Reviews (60% confidence)
+       - Evidence: Social proof affects perception
+       - Validation: Sentiment analysis timeline, new customer acquisition impact
+       - Consideration: May reduce new signups more than cause churn
+
+    UNLIKELY PRIMARY CAUSE (Low Confidence - 30%):
+
+    5. Pricing Increase (30% confidence)
+       - Evidence: 4-month lag suggests not the primary driver
+       - Reasoning: If price was main issue, churn would spike immediately
+       - Validation: Segment by plan type/revenue
+       - Conclusion: Contributing factor but not root cause
+
+    CORRELATION VS CAUSATION:
+    - Pricing: Correlation (timing mismatch)
+    - Feature deprecation: Strong causation (direct impact)
+    - Support degradation: Likely causation (mechanism clear)
+    - Competitor: Mixed (enables churn, doesn't cause it)
+    - Reviews: Correlation (amplifier, not initiator)
+
+    VALIDATION METHODS:
+    1. Cohort analysis: Compare churn by Feature X usage
+    2. Exit surveys: Ask "primary reason for leaving"
+    3. Support ticket analysis: Time-to-resolution vs. churn rate
+    4. Win-back campaign: Test with feature restoration offer
+
+    PRIORITIZED ACTIONS:
+    1. IMMEDIATE (Week 1): Improve support response time to <3 hours
+       - Impact: High, Effort: Medium, Time: 2 weeks
+
+    2. URGENT (Week 2): Restore Feature X or provide alternative
+       - Impact: Highest, Effort: High, Time: 4-6 weeks
+
+    3. SHORT-TERM (Month 1): Proactive outreach to at-risk customers
+       - Impact: Medium, Effort: Low, Time: Ongoing
+
+    4. MEDIUM-TERM (Month 2): Address viral reviews with transparency
+       - Impact: Low-Medium, Effort: Low, Time: 2 weeks
+
+    5. EVALUATE (Month 2): Pricing adjustment if data supports
+       - Impact: Unknown, Effort: Low, Time: 1 week
+
+    EXPECTED OUTCOME:
+    - Actions 1+2 should reduce churn to 7-8% within 2 months
+    - Full recovery to 5% requires 3-4 months with sustained effort
+
+# ============================================================================
+# CATEGORY: Technical Documentation & Communication
+# ============================================================================
+
+- prompt: |
+    Write comprehensive technical documentation for a REST API endpoint that handles file uploads.
+    Include:
+    - Endpoint specification (method, path, parameters)
+    - Authentication requirements
+    - Request/response examples
+    - Error scenarios with codes
+    - Rate limits and size restrictions
+    - Implementation notes for common use cases
+    - Security considerations
+
+    Target audience: External developers integrating with the API
+  reference: |
+    # File Upload API Documentation
+
+    ## Endpoint Overview
+    Upload files to the secure storage system with automatic virus scanning and validation.
+
+    ### HTTP Request
+    ```
+    POST /api/v2/files/upload
+    ```
+
+    ### Authentication
+    **Required**: Bearer token in Authorization header
+
+    ```
+    Authorization: Bearer {your_api_token}
+    ```
+
+    ### Request Parameters
+
+    **Headers:**
+    - `Content-Type: multipart/form-data` (required)
+    - `X-Upload-Context: string` (optional) - Metadata about upload context
+
+    **Body Parameters:**
+    - `file` (required): The file to upload (binary data)
+    - `folder_id` (optional): Destination folder UUID
+    - `public` (optional): Boolean, default false - Make file publicly accessible
+    - `tags` (optional): Comma-separated list of tags
+
+    ### Constraints
+    - Maximum file size: 100 MB
+    - Allowed file types: PDF, PNG, JPG, DOCX, XLSX, TXT
+    - Rate limit: 50 requests per hour per API key
+    - Concurrent uploads: 3 per user
+
+    ### Response Format
+
+    **Success Response (201 Created):**
+    ```json
+    {
+      "file_id": "f7d8c9e2-4a1b-4c5d-8e9f-1a2b3c4d5e6f",
+      "filename": "document.pdf",
+      "size": 2458632,
+      "content_type": "application/pdf",
+      "upload_timestamp": "2024-01-15T10:30:00Z",
+      "url": "https://api.example.com/files/f7d8c9e2-4a1b-4c5d-8e9f-1a2b3c4d5e6f",
+      "public_url": null,
+      "scan_status": "pending"
+    }
+    ```
+
+    ### Error Responses
+
+    | Status Code | Error Code | Description | Resolution |
+    |-------------|------------|-------------|------------|
+    | 400 | `INVALID_FILE_TYPE` | File type not allowed | Check allowed types list |
+    | 400 | `FILE_TOO_LARGE` | File exceeds 100 MB limit | Compress or split file |
+    | 401 | `UNAUTHORIZED` | Invalid or missing token | Check Authorization header |
+    | 403 | `QUOTA_EXCEEDED` | Storage quota reached | Upgrade plan or delete files |
+    | 413 | `PAYLOAD_TOO_LARGE` | Request body too large | Reduce file size |
+    | 429 | `RATE_LIMIT_EXCEEDED` | Too many requests | Wait and retry with backoff |
+    | 503 | `SERVICE_UNAVAILABLE` | Temporary service issue | Retry with exponential backoff |
+
+    **Error Response Format:**
+    ```json
+    {
+      "error": {
+        "code": "FILE_TOO_LARGE",
+        "message": "File size exceeds maximum allowed size of 100 MB",
+        "details": {
+          "file_size": 157286400,
+          "max_size": 104857600
+        }
+      }
+    }
+    ```
+
+    ### Example Usage
+
+    **cURL:**
+    ```bash
+    curl -X POST https://api.example.com/api/v2/files/upload \
+      -H "Authorization: Bearer YOUR_API_TOKEN" \
+      -F "file=@/path/to/document.pdf" \
+      -F "folder_id=a1b2c3d4-e5f6-7890-abcd-ef1234567890" \
+      -F "tags=invoice,2024,client-a"
+    ```
+
+    **Python:**
+    ```python
+    import requests
+
+    url = "https://api.example.com/api/v2/files/upload"
+    headers = {"Authorization": "Bearer YOUR_API_TOKEN"}
+    files = {"file": open("document.pdf", "rb")}
+    data = {
+        "folder_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "tags": "invoice,2024,client-a"
+    }
+
+    response = requests.post(url, headers=headers, files=files, data=data)
+    print(response.json())
+    ```
+
+    **JavaScript (Node.js):**
+    ```javascript
+    const FormData = require('form-data');
+    const fs = require('fs');
+    const axios = require('axios');
+
+    const form = new FormData();
+    form.append('file', fs.createReadStream('document.pdf'));
+    form.append('folder_id', 'a1b2c3d4-e5f6-7890-abcd-ef1234567890');
+    form.append('tags', 'invoice,2024,client-a');
+
+    axios.post('https://api.example.com/api/v2/files/upload', form, {
+      headers: {
+        'Authorization': 'Bearer YOUR_API_TOKEN',
+        ...form.getHeaders()
+      }
+    }).then(response => console.log(response.data));
+    ```
+
+    ### Security Considerations
+
+    1. **Virus Scanning**: All uploads are automatically scanned. Files marked as threats are quarantined and not accessible.
+    2. **File Type Validation**: Both extension and MIME type are validated to prevent disguised malicious files.
+    3. **Rate Limiting**: Prevents abuse and DoS attacks. Implement exponential backoff in your client.
+    4. **Token Security**: Never expose API tokens in client-side code. Use backend proxies for browser uploads.
+    5. **Public Files**: Use caution with `public: true` - files become accessible to anyone with the URL.
+
+    ### Best Practices
+
+    1. **Progress Tracking**: For large files, implement progress callbacks to track upload status
+    2. **Retry Logic**: Implement exponential backoff for 5xx errors and rate limits
+    3. **Chunked Uploads**: For files >50 MB, consider using the chunked upload API (see separate documentation)
+    4. **Validation**: Validate files client-side before uploading to improve UX
+    5. **Error Handling**: Always handle errors gracefully and provide user feedback
+
+    ### Webhook Notifications
+
+    To receive notifications when virus scanning completes, configure webhooks in your dashboard:
+    ```json
+    {
+      "event": "file.scan_complete",
+      "file_id": "f7d8c9e2-4a1b-4c5d-8e9f-1a2b3c4d5e6f",
+      "scan_result": "clean",
+      "timestamp": "2024-01-15T10:30:15Z"
+    }
+    ```
+
+# ============================================================================
+# CATEGORY: Data Analysis & SQL
+# ============================================================================
+
+- prompt: |
+    Write an optimized SQL query for the following scenario:
+
+    Tables:
+    - users (id, email, created_at, country)
+    - orders (id, user_id, total_amount, status, order_date)
+    - order_items (id, order_id, product_id, quantity, price)
+
+    Task: Find top 10 countries by total revenue in Q1 2024, including:
+    - Total revenue
+    - Number of unique customers
+    - Average order value
+    - Order count
+
+    Requirements:
+    - Only include completed orders
+    - Exclude cancelled/refunded orders
+    - Handle NULL values appropriately
+    - Optimize for PostgreSQL
+    - Include index recommendations
+  reference: |
+    ```sql
+    -- Optimized query with CTE for better readability and performance
+    WITH q1_2024_orders AS (
+      SELECT
+        o.id AS order_id,
+        o.user_id,
+        o.total_amount,
+        u.country
+      FROM orders o
+      INNER JOIN users u ON o.user_id = u.id
+      WHERE o.status = 'completed'
+        AND o.order_date >= '2024-01-01'
+        AND o.order_date < '2024-04-01'
+        AND u.country IS NOT NULL
+    )
+    SELECT
+      country,
+      ROUND(SUM(total_amount)::numeric, 2) AS total_revenue,
+      COUNT(DISTINCT user_id) AS unique_customers,
+      ROUND(AVG(total_amount)::numeric, 2) AS avg_order_value,
+      COUNT(order_id) AS order_count
+    FROM q1_2024_orders
+    GROUP BY country
+    ORDER BY total_revenue DESC
+    LIMIT 10;
+    ```
+
+    **Index Recommendations:**
+
+    ```sql
+    -- Critical indexes for optimal performance
+    CREATE INDEX idx_orders_status_date ON orders(status, order_date)
+      WHERE status = 'completed';
+
+    CREATE INDEX idx_orders_user_id ON orders(user_id);
+
+    CREATE INDEX idx_users_country ON users(country)
+      WHERE country IS NOT NULL;
+
+    -- Composite index for covering the join
+    CREATE INDEX idx_orders_lookup ON orders(order_date, status, user_id, total_amount);
+    ```
+
+    **Performance Optimization Notes:**
+
+    1. **Partial Index**: The WHERE clause on status reduces index size
+    2. **Date Range**: Using >= and < instead of BETWEEN for better query plan
+    3. **CTE**: Improves readability and allows PostgreSQL to optimize execution
+    4. **Covering Index**: idx_orders_lookup includes all needed columns
+    5. **INNER JOIN**: More efficient than LEFT JOIN when country is required
+    6. **NULL Handling**: Filtered in WHERE clause, not in aggregation
+
+    **Expected Performance:**
+    - With indexes: <50ms for millions of rows
+    - Without indexes: 2-5 seconds
+    - Index size: ~10-15% of table size
+
+    **Alternative Approach (Materialized View for frequent queries):**
+
+    ```sql
+    CREATE MATERIALIZED VIEW country_revenue_q1_2024 AS
+    SELECT
+      u.country,
+      SUM(o.total_amount) AS total_revenue,
+      COUNT(DISTINCT o.user_id) AS unique_customers,
+      AVG(o.total_amount) AS avg_order_value,
+      COUNT(o.id) AS order_count
+    FROM orders o
+    INNER JOIN users u ON o.user_id = u.id
+    WHERE o.status = 'completed'
+      AND o.order_date >= '2024-01-01'
+      AND o.order_date < '2024-04-01'
+    GROUP BY u.country;
+
+    -- Refresh daily or as needed
+    REFRESH MATERIALIZED VIEW country_revenue_q1_2024;
+    ```
+
+# ============================================================================
+# CATEGORY: Machine Learning & AI
+# ============================================================================
+
+- prompt: |
+    Design an A/B testing framework for evaluating a new recommendation algorithm.
+
+    Context:
+    - E-commerce platform with 1M daily active users
+    - Current algorithm: collaborative filtering
+    - New algorithm: hybrid (collaborative + content-based + contextual bandit)
+
+    Provide:
+    1. Experiment design (sample size, duration, randomization strategy)
+    2. Key metrics (primary and secondary)
+    3. Statistical analysis approach
+    4. Guardrail metrics to prevent degradation
+    5. Implementation considerations (ramp-up, monitoring, rollback criteria)
+  reference: |
+    # A/B Testing Framework for Recommendation Algorithm
+
+    ## 1. EXPERIMENT DESIGN
+
+    **Hypothesis:**
+    The hybrid recommendation algorithm will increase user engagement (click-through rate) by at least 5% compared to the current collaborative filtering algorithm, without degrading revenue or user satisfaction.
+
+    **Groups:**
+    - Control (A): Current collaborative filtering (50% of users)
+    - Treatment (B): New hybrid algorithm (50% of users)
+
+    **Sample Size Calculation:**
+    - Baseline CTR: 3.5% (assumed)
+    - Minimum Detectable Effect (MDE): 5% relative increase → 3.675% CTR
+    - Power: 80%
+    - Significance level: 0.05
+    - **Required sample size**: ~450,000 users per group
+    - **Daily users available**: 500,000 per group
+    - **Experiment duration**: 14 days (for stability and weekly cycles)
+
+    **Randomization Strategy:**
+    - User-level randomization (not session-level)
+    - Consistent hashing on user_id for stable group assignment
+    - Stratified by user segment (new, active, power users) to ensure balance
+    - 5% holdout group for long-term effect measurement
+
+    ## 2. KEY METRICS
+
+    **Primary Metric:**
+    - **Click-Through Rate (CTR)**: Percentage of recommended items clicked
+      - Measurement: (total_clicks / total_impressions) × 100
+      - Success criteria: >5% relative improvement
+
+    **Secondary Metrics:**
+    - **Add-to-Cart Rate**: Conversion from click to cart addition
+    - **Purchase Conversion Rate**: Percentage of clicked recommendations leading to purchase
+    - **Average Order Value (AOV)**: Revenue per order
+    - **Session Duration**: Time spent on site
+    - **Recommendations Shown**: Number of recommendation impressions per user
+
+    **Guardrail Metrics** (must not degrade):
+    - **Revenue per User**: Must not decrease >2%
+    - **User Satisfaction (NPS)**: Must not decrease
+    - **System Latency**: P95 latency <200ms
+    - **Bounce Rate**: Must not increase >3%
+    - **User Retention (D7)**: Must not decrease
+
+    ## 3. STATISTICAL ANALYSIS
+
+    **Method: Two-Sample T-Test with Bonferroni Correction**
+
+    ```python
+    from scipy import stats
+    import numpy as np
+
+    def analyze_results(control_ctr, treatment_ctr):
+        # T-test
+        t_stat, p_value = stats.ttest_ind(control_ctr, treatment_ctr)
+
+        # Confidence interval
+        control_mean = np.mean(control_ctr)
+        treatment_mean = np.mean(treatment_ctr)
+        relative_lift = (treatment_mean - control_mean) / control_mean
+
+        # Bonferroni correction for multiple comparisons
+        alpha_corrected = 0.05 / 7  # 7 metrics
+
+        return {
+            'control_mean': control_mean,
+            'treatment_mean': treatment_mean,
+            'relative_lift': relative_lift,
+            'p_value': p_value,
+            'significant': p_value < alpha_corrected
+        }
+    ```
+
+    **Sequential Testing (Early Stopping):**
+    - Implement sequential probability ratio test (SPRT)
+    - Check metrics daily but adjust significance thresholds
+    - Allow early stop if clear winner emerges (p < 0.001) after minimum 7 days
+
+    ## 4. GUARDRAIL METRICS & MONITORING
+
+    **Automated Checks:**
+    ```yaml
+    guardrails:
+      - metric: revenue_per_user
+        threshold: -2%
+        action: alert
+
+      - metric: p95_latency
+        threshold: 200ms
+        action: auto_rollback
+
+      - metric: error_rate
+        threshold: 1%
+        action: auto_rollback
+
+      - metric: bounce_rate
+        threshold: +3%
+        action: alert
+    ```
+
+    **Monitoring Dashboard:**
+    - Real-time metric updates (hourly)
+    - Segmented views (by user cohort, device type, time of day)
+    - Anomaly detection for unexpected patterns
+    - Confidence intervals displayed alongside point estimates
+
+    ## 5. IMPLEMENTATION PLAN
+
+    **Phase 1: Ramp-up (Days 1-3)**
+    - Day 1: 5% of users to treatment
+    - Day 2: 25% of users to treatment
+    - Day 3: 50% of users to treatment (full experiment)
+    - Monitor guardrails closely; immediate rollback if breached
+
+    **Phase 2: Observation (Days 4-14)**
+    - Full 50/50 split
+    - Daily metric reviews
+    - Weekly deep-dive analysis
+
+    **Phase 3: Decision (Day 15)**
+    - Statistical significance achieved?
+    - Guardrails passed?
+    - Business impact acceptable?
+    - Decision: Ship, iterate, or abandon
+
+    **Rollback Criteria (Automatic):**
+    1. P95 latency exceeds 200ms for 5+ minutes
+    2. Error rate >1% for 3+ minutes
+    3. Revenue per user drops >5% (statistically significant)
+    4. System crashes or critical bugs
+
+    **Rollback Criteria (Manual Review):**
+    1. Revenue per user drops 2-5%
+    2. User complaints spike
+    3. Unexpected behavior in specific segments
+    4. External factors (major competitor move, news event)
+
+    ## 6. ADDITIONAL CONSIDERATIONS
+
+    **Novelty Effect:**
+    - Extended measurement period (28 days) for subset of users
+    - Compare week 1 vs. week 2 metrics to detect decay
+
+    **Network Effects:**
+    - Minimal in recommendations (mostly user-independent)
+    - If present, consider cluster randomization
+
+    **Segmented Analysis:**
+    - Analyze results by user tenure, purchase frequency, device type
+    - Identify winning/losing segments
+    - Consider targeted rollout if hybrid
+
+    **Long-term Effects:**
+    - 5% holdout group remains on control for 90 days
+    - Measure long-term retention, LTV impact
+
+    **Documentation:**
+    - Pre-register experiment design
+    - Document all metric definitions
+    - Record decision criteria before viewing results (avoid HARKing)
+
+    **Success Criteria Summary:**
+    ✓ Primary metric (CTR) improves >5% with p<0.05
+    ✓ All guardrails pass
+    ✓ Positive ROI projection based on secondary metrics
+    ✓ No major technical issues during experiment
+
+# ============================================================================
+# CATEGORY: Creative Problem Solving
+# ============================================================================
+
+- prompt: |
+    You need to estimate the number of piano tuners in Chicago without looking up any data.
+    Walk through your estimation process step-by-step, showing:
+    1. Assumptions made (with justifications)
+    2. Calculations at each step
+    3. Sensitivity analysis on key assumptions
+    4. Confidence intervals on final estimate
+
+    This is a Fermi estimation problem - focus on the reasoning process.
+  reference: |
+    # Fermi Estimation: Piano Tuners in Chicago
+
+    ## APPROACH: Bottom-Up Estimation
+
+    ### STEP 1: Establish Base Assumptions
+
+    **Population of Chicago:**
+    - Assumption: ~3 million people
+    - Justification: Major US city, not top 3 but in top 10
+
+    **Household size:**
+    - Assumption: 2.5 people per household on average
+    - Justification: Mix of families, couples, singles
+    - **Calculation**: 3,000,000 / 2.5 = 1,200,000 households
+
+    ### STEP 2: Estimate Number of Pianos
+
+    **Household piano ownership rate:**
+    - Assumption: 2% of households own a piano
+    - Justification: Pianos are expensive, require space, not universal interest
+    - Range: 1-3% (sensitivity analysis)
+    - **Calculation**: 1,200,000 × 0.02 = 24,000 household pianos
+
+    **Institutional pianos:**
+    - Schools: 500 schools × 1 piano = 500 pianos
+    - Concert halls/theaters: 50 venues × 2 pianos = 100 pianos
+    - Churches: 1,000 churches × 0.3 = 300 pianos
+    - Music schools/studios: 200 × 3 = 600 pianos
+    - **Total institutional**: 1,500 pianos
+
+    **Total pianos in Chicago**: 24,000 + 1,500 = **25,500 pianos**
+
+    ### STEP 3: Estimate Tuning Frequency
+
+    **Average tunings per piano per year:**
+    - Assumption: 1 tuning per year on average
+    - Justification: Professional pianists tune 2-4x/year, casual owners tune every 1-2 years
+    - Range: 0.8-1.5 (sensitivity analysis)
+    - **Calculation**: 25,500 × 1 = **25,500 tunings per year**
+
+    ### STEP 4: Estimate Tuner Capacity
+
+    **Working days per year:**
+    - 52 weeks × 5 days = 260 days
+    - Minus holidays/vacation: 260 - 20 = 240 working days
+
+    **Tunings per day:**
+    - Assumption: 3 tunings per day
+    - Justification: 2 hours per tuning + 1 hour travel/setup = 3 hours per job × 3 = 9-hour day
+    - Range: 2-4 tunings per day
+
+    **Tunings per tuner per year:**
+    - 240 days × 3 tunings = **720 tunings per year**
+
+    ### STEP 5: Calculate Number of Tuners
+
+    **Required tuners:**
+    - 25,500 tunings needed / 720 tunings per tuner
+    - **= 35.4 tuners**
+    - **Rounded estimate: 35-40 piano tuners in Chicago**
+
+    ## SENSITIVITY ANALYSIS
+
+    **Low estimate** (pessimistic assumptions):
+    - 1% piano ownership: 12,000 + 1,500 = 13,500 pianos
+    - 0.8 tunings per year: 10,800 tunings needed
+    - 4 tunings per day: 960 capacity per tuner
+    - **Result**: 10,800 / 960 = **11 tuners**
+
+    **High estimate** (optimistic assumptions):
+    - 3% piano ownership: 36,000 + 1,500 = 37,500 pianos
+    - 1.5 tunings per year: 56,250 tunings needed
+    - 2 tunings per day: 480 capacity per tuner
+    - **Result**: 56,250 / 480 = **117 tuners**
+
+    ## FINAL ESTIMATE
+
+    **Point estimate**: 35-40 piano tuners
+    **Confidence interval**: 15-80 tuners (80% confidence)
+    **Most likely range**: 25-50 tuners
+
+    ## KEY ASSUMPTIONS CRITIQUE
+
+    **Most impactful assumptions:**
+    1. Piano ownership rate (2%) - MEDIUM CONFIDENCE
+       - Could be lower in apartment-heavy city
+       - Could be higher in wealthy neighborhoods
+
+    2. Tunings per year (1) - MEDIUM CONFIDENCE
+       - Many pianos go untuned for years
+       - Professional/institutional pianos tuned more frequently
+
+    3. Tuner productivity (3/day) - HIGH CONFIDENCE
+       - Well-established industry standard
+       - Travel time is significant factor
+
+    **Reality Check:**
+    - This seems reasonable for a major US city
+    - Not so many that market is oversaturated
+    - Enough to sustain as a profession with other income sources
+    - Actual answer (if Googled): ~50-80 tuners - our estimate is in the ballpark!
+
+    ## LESSONS FROM THIS ESTIMATION
+
+    1. **Break down complex problems** into manageable components
+    2. **State assumptions explicitly** - makes reasoning transparent
+    3. **Use round numbers** - precision is false in estimates
+    4. **Test sensitivity** - understand which assumptions matter most
+    5. **Sanity check** - does the answer make intuitive sense?
+
